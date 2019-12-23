@@ -1,0 +1,8 @@
+name: FineSocket
+main: me.bartvv.finesocket.FineSocket
+version: 1.0.0
+author: Bart
+api-version: 1.14
+commands:
+  finesocket:
+  

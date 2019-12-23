@@ -1,0 +1,23 @@
+websocket:
+  # when should it disconnect from a client 
+  # when he hasn't succesfully logged in
+  # in ticks
+  disconnectTime: 600 
+  # port it should run on
+  port: 8877
+  # max tries before tempbanned
+  maxtries: 5
+  # time the IP is being tempbanned
+  # in seconds
+  tempban: 3600
+messages:
+  no-permission: "&7No permission"
+  wrong-usage:
+    - "/finesocket create (username) (password)"
+    - "/finesocket delete (username)"
+    - "/finesocket edit (username) (new password)"
+  no-username: "&7Username not found"
+  username-exists: "&7Username already exists"
+  created: "&7User created"
+  deleted: "&7User deleted"
+  editted: "&7User password editted"
