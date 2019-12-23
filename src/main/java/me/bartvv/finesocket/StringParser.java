@@ -6,12 +6,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.bukkit.Material;
 
 import com.google.common.base.Enums;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -26,6 +30,8 @@ public class StringParser {
 	private static final Pattern COLON_PATTERN = Pattern.compile( "[:]+(?![^(]*\\))" );
 	private static final Pattern PARAMETER_PATTERN = Pattern.compile( "\"(.*?)\"" );
 	private static final Pattern MULTI_PATTERN = Pattern.compile( "[,]+(?![^(]*\\))" );
+	private static final Cache< String, Set< Method > > METHOD_CACHE = CacheBuilder.newBuilder()
+			.expireAfterAccess( 2, TimeUnit.HOURS ).build();
 	private static final Gson GSON = new GsonBuilder().create();
 
 	static {
@@ -72,7 +78,7 @@ public class StringParser {
 		return GSON.toJson( map );
 	}
 
-	@SuppressWarnings( "unchecked" )
+	@SuppressWarnings( { "unchecked", "rawtypes" } )
 	private static Object parseString( Object object, String string )
 			throws ClassNotFoundException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NullReturnException, NoSuchMethodException {
@@ -157,15 +163,24 @@ public class StringParser {
 	}
 
 	private static Set< Method > getMethods( String methodName, Class< ? > clazz, int parameterCount ) {
-		Set< Method > methods = Sets.newHashSet();
-		for ( Method method : clazz.getMethods() )
-			if ( method.getName().equalsIgnoreCase( methodName ) && method.getParameterCount() == parameterCount )
-				methods.add( method );
-		for ( Method method : clazz.getDeclaredMethods() )
-			if ( method.getName().equalsIgnoreCase( methodName ) && method.getParameterCount() == parameterCount ) {
-				method.setAccessible( true );
-				methods.add( method );
-			}
-		return methods;
+		try {
+			return METHOD_CACHE.get( clazz.getName() + "." + methodName, () -> {
+				Set< Method > methods = Sets.newHashSet();
+				for ( Method method : clazz.getMethods() )
+					if ( method.getName().equalsIgnoreCase( methodName )
+							&& method.getParameterCount() == parameterCount )
+						methods.add( method );
+				for ( Method method : clazz.getDeclaredMethods() )
+					if ( method.getName().equalsIgnoreCase( methodName )
+							&& method.getParameterCount() == parameterCount ) {
+						method.setAccessible( true );
+						methods.add( method );
+					}
+				return methods;
+			} );
+		} catch ( ExecutionException e ) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 }
