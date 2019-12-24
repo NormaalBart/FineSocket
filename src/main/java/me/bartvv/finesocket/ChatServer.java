@@ -119,14 +119,12 @@ public class ChatServer extends WebSocketServer {
 			return;
 		}
 		try {
-			String response = StringParser.parseString( message );
-			webSocket.send( response );
+			StringParser.parseString( message, webSocket::send );
 		} catch ( ClassNotFoundException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e ) {
 			e.printStackTrace();
 			webSocket.send( "{\"error\":\"" + e.getMessage() + "\"}" );
 		}
-		return;
 	}
 
 	@Override

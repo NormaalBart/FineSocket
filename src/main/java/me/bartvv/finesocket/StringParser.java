@@ -61,7 +61,7 @@ public class StringParser {
 		CONVERTERS.put( UUID.class, UUID::fromString );
 	}
 
-	public static String parseString( String string )
+	public static void parseString( String string, Callback< String > callback )
 			throws ClassNotFoundException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		String id = string.substring( 0, string.indexOf( '.' ) );
 		String javaCode = string.substring( string.indexOf( '.' ) + 1 );
@@ -73,7 +73,7 @@ public class StringParser {
 		}
 		if ( !( object instanceof List ) )
 			object = Lists.newArrayList( object );
-		return GSON.toJson( ImmutableMap.of( "id", id, "data", object ) );
+		callback.onSuccess( GSON.toJson( ImmutableMap.of( "id", id, "data", object ) ) );
 	}
 
 	@SuppressWarnings( { "unchecked", "rawtypes" } )
