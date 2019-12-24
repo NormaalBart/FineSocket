@@ -16,6 +16,7 @@ import org.bukkit.Material;
 import com.google.common.base.Enums;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -72,10 +73,7 @@ public class StringParser {
 		}
 		if ( !( object instanceof List ) )
 			object = Lists.newArrayList( object );
-		Map< String, Object > map = Maps.newLinkedHashMap();
-		map.put( "id", id );
-		map.put( "data", object );
-		return GSON.toJson( map );
+		return GSON.toJson( ImmutableMap.of( "id", id, "data", object ) );
 	}
 
 	@SuppressWarnings( { "unchecked", "rawtypes" } )

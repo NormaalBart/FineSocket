@@ -23,7 +23,7 @@ import lombok.Setter;
 public class ChatServer extends WebSocketServer {
 
 	private final FineSocket fineSocket;
-	private static final Pattern PATTERN = Pattern.compile( "\\." );
+	private static final Pattern DOT_PATTERN = Pattern.compile( "\\." );
 	private List< WebSocket > authorizedConnections = Lists.newArrayList();
 	private Map< String, Integer > passwordAttempts = Maps.newHashMap();
 	@Getter
@@ -95,7 +95,7 @@ public class ChatServer extends WebSocketServer {
 			return;
 		}
 		if ( message.startsWith( "login." ) ) {
-			String[] args = PATTERN.split( message );
+			String[] args = DOT_PATTERN.split( message );
 			if ( args.length != 3 ) {
 				webSocket.close();
 				return;

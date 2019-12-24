@@ -10,6 +10,11 @@ websocket:
   # time the IP is being tempbanned
   # in seconds
   tempban: 3600
+  # should it enable SSL?
+  ssl: true
+  keystore:  
+    store-password: "vZ4U6dwQQP3sDChUQpsH"
+    key-password: "vZ4U6dwQQP3sDChUQpsH"
 messages:
   no-permission: "&7No permission"
   wrong-usage:
