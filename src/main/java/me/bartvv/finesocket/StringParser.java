@@ -97,8 +97,8 @@ public class StringParser {
 				public String call() throws Exception {
 					return GSON.toJson( ImmutableMap.of( "id", id, "data", returnArguments ) );
 				}
-			} ).get();
-		} catch ( InterruptedException | ExecutionException e ) {
+			} ).get( 30, TimeUnit.SECONDS );
+		} catch ( InterruptedException | ExecutionException | TimeoutException e ) {
 			callback.onSuccess(
 					GSON.toJson( ImmutableMap.of( "id", id, "data", Lists.newArrayList( e.getStackTrace() ) ) ) );
 			return;
@@ -257,7 +257,7 @@ public class StringParser {
 		else
 			for ( Method method : methods )
 				return Optional.of( method );
-		
+
 		return Optional.absent();
 	}
 
