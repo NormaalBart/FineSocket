@@ -131,10 +131,8 @@ public class FineSocket extends JavaPlugin {
 	@Override
 	public void onDisable() {
 		try {
-			this.chatServer.stop( 1000 );
-		} catch ( InterruptedException e ) {
-			e.printStackTrace();
-		}
+			this.chatServer.stop();
+		} catch ( Throwable e ) {}
 		save();
 		Bukkit.getScheduler().cancelTasks( this );
 	}

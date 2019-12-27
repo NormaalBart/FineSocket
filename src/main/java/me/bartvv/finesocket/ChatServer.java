@@ -6,6 +6,8 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -38,26 +40,33 @@ public class ChatServer extends WebSocketServer {
 	public ChatServer( InetSocketAddress address, FineSocket fineSocket ) {
 		super( address );
 		this.fineSocket = fineSocket;
+		new Timer().scheduleAtFixedRate( new TimerTask() {
+			@Override
+			public void run() {
+				getConnections().forEach( WebSocket::sendPing );
+			}
+		}, TimeUnit.SECONDS.toMillis( 30 ), TimeUnit.SECONDS.toMillis( 30 ) );
 	}
 
 	@Override
 	public void onOpen( WebSocket webSocket, ClientHandshake handshake ) {
-		if ( this.bannedIPs.getOrDefault( webSocket.getRemoteSocketAddress().getHostName(),
+		if ( this.bannedIPs.getOrDefault( getIPAdress( webSocket.getRemoteSocketAddress() ),
 				System.currentTimeMillis() - 10 ) > System.currentTimeMillis() ) {
 			webSocket.close();
 			return;
 		}
-		this.bannedIPs.remove( webSocket.getRemoteSocketAddress().getHostName() );
+		this.bannedIPs.remove( getIPAdress( webSocket.getRemoteSocketAddress() ) );
 		Bukkit.getScheduler().runTaskLaterAsynchronously( this.fineSocket, () -> {
 			if ( webSocket.isClosed() )
 				return;
 			if ( !this.authorizedConnections.contains( webSocket ) ) {
-				int tries = this.passwordAttempts.put( webSocket.getRemoteSocketAddress().getHostName(),
-						this.passwordAttempts.getOrDefault( webSocket.getRemoteSocketAddress().getHostName(), 0 ) + 1 );
+				int tries = this.passwordAttempts.put( getIPAdress( webSocket.getRemoteSocketAddress() ),
+						this.passwordAttempts.getOrDefault( getIPAdress( webSocket.getRemoteSocketAddress() ), 0 )
+								+ 1 );
 				if ( tries >= this.fineSocket.getConfig().getInt( "websocket.maxtries" ) ) {
-					this.bannedIPs.put( webSocket.getRemoteSocketAddress().getHostName(), System.currentTimeMillis()
+					this.bannedIPs.put( getIPAdress( webSocket.getRemoteSocketAddress() ), System.currentTimeMillis()
 							+ TimeUnit.SECONDS.toMillis( this.fineSocket.getConfig().getInt( "websocket.tempban" ) ) );
-					this.passwordAttempts.remove( webSocket.getRemoteSocketAddress().getHostName() );
+					this.passwordAttempts.remove( getIPAdress( webSocket.getRemoteSocketAddress() ) );
 				}
 				if ( !webSocket.isClosed() )
 					webSocket.close();
@@ -82,14 +91,14 @@ public class ChatServer extends WebSocketServer {
 
 	private void onMessageReceive( WebSocket webSocket, String message ) {
 		if ( !this.authorizedConnections.contains( webSocket ) && !message.startsWith( "login." ) ) {
-			Integer tries = this.passwordAttempts.put( webSocket.getRemoteSocketAddress().getHostName(),
-					this.passwordAttempts.getOrDefault( webSocket.getRemoteSocketAddress().getHostName(), 0 ) + 1 );
+			Integer tries = this.passwordAttempts.put( getIPAdress( webSocket.getRemoteSocketAddress() ),
+					this.passwordAttempts.getOrDefault( getIPAdress( webSocket.getRemoteSocketAddress() ), 0 ) + 1 );
 			if ( tries == null )
 				tries = 1;
 			if ( tries >= this.fineSocket.getConfig().getInt( "websocket.maxtries" ) ) {
-				this.bannedIPs.put( webSocket.getRemoteSocketAddress().getHostName(), System.currentTimeMillis()
+				this.bannedIPs.put( getIPAdress( webSocket.getRemoteSocketAddress() ), System.currentTimeMillis()
 						+ TimeUnit.SECONDS.toMillis( this.fineSocket.getConfig().getInt( "websocket.tempban" ) ) );
-				this.passwordAttempts.remove( webSocket.getRemoteSocketAddress().getHostName() );
+				this.passwordAttempts.remove( getIPAdress( webSocket.getRemoteSocketAddress() ) );
 			}
 			webSocket.close();
 			return;
@@ -103,17 +112,19 @@ public class ChatServer extends WebSocketServer {
 			String username = args[ 1 ];
 			String password = PasswordUtils.hashString( args[ 2 ] );
 			if ( !this.fineSocket.getPasswords().getOrDefault( username, "N/A" ).equalsIgnoreCase( password ) ) {
-				int tries = this.passwordAttempts.put( webSocket.getRemoteSocketAddress().getHostName(),
-						this.passwordAttempts.getOrDefault( webSocket.getRemoteSocketAddress().getHostName(), 0 ) + 1 );
+				// TODO: hostname returns null. daarom komt er soms n error
+				int tries = this.passwordAttempts.put( getIPAdress( webSocket.getRemoteSocketAddress() ),
+						this.passwordAttempts.getOrDefault( getIPAdress( webSocket.getRemoteSocketAddress() ), 0 )
+								+ 1 );
 				if ( tries >= this.fineSocket.getConfig().getInt( "websocket.maxtries" ) ) {
-					this.bannedIPs.put( webSocket.getRemoteSocketAddress().getHostName(), System.currentTimeMillis()
+					this.bannedIPs.put( getIPAdress( webSocket.getRemoteSocketAddress() ), System.currentTimeMillis()
 							+ TimeUnit.SECONDS.toMillis( this.fineSocket.getConfig().getInt( "websocket.tempban" ) ) );
-					this.passwordAttempts.remove( webSocket.getRemoteSocketAddress().getHostName() );
+					this.passwordAttempts.remove( getIPAdress( webSocket.getRemoteSocketAddress() ) );
 				}
 				webSocket.close();
 				return;
 			}
-			this.passwordAttempts.remove( webSocket.getRemoteSocketAddress().getHostName() );
+			this.passwordAttempts.remove( getIPAdress( webSocket.getRemoteSocketAddress() ) );
 			webSocket.send( "{\"id\":\"login\",\"success\":true}" );
 			this.authorizedConnections.add( webSocket );
 			return;
@@ -125,6 +136,10 @@ public class ChatServer extends WebSocketServer {
 			e.printStackTrace();
 			webSocket.send( "{\"error\":\"" + e.getMessage() + "\"}" );
 		}
+	}
+
+	private String getIPAdress( InetSocketAddress inetSocketAddress ) {
+		return inetSocketAddress.getAddress().toString();
 	}
 
 	@Override
