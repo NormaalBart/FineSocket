@@ -67,43 +67,38 @@ public class StringParser {
 		CONVERTERS.put( UUID.class, UUID::fromString );
 	}
 
+	@SuppressWarnings( "unchecked" )
 	public static void parseString( String string, Callback< String > callback )
 			throws ClassNotFoundException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		String id = string.substring( 0, string.indexOf( '.' ) );
-		String javaCode = string.substring( string.indexOf( '.' ) + 1 );
-		List< String > returnArguments;
-		try {
-			returnArguments = EXECUTOR_SERVICE.submit( new Callable< List< String > >() {
+		EXECUTOR_SERVICE.execute( () -> {
+			String id = string.substring( 0, string.indexOf( '.' ) );
+			String javaCode = string.substring( string.indexOf( '.' ) + 1 );
+			List< String > returnArguments;
+			try {
+				Object object = parseString( null, javaCode );
+				if ( !( object instanceof List ) )
+					object = Lists.newArrayList( object );
+				returnArguments = ( List< String > ) object;
+			} catch ( Exception e ) {
+				callback.onSuccess(
+						GSON.toJson( ImmutableMap.of( "id", id, "data", Lists.newArrayList( e.getStackTrace() ) ) ) );
+				return;
+			}
 
-				@SuppressWarnings( "unchecked" )
-				@Override
-				public List< String > call() throws Exception {
-					Object object = parseString( null, javaCode );
-					if ( !( object instanceof List ) )
-						object = Lists.newArrayList( object );
-					return ( List< String > ) object;
-				}
-
-			} ).get();
-		} catch ( InterruptedException | ExecutionException e ) {
-			callback.onSuccess(
-					GSON.toJson( ImmutableMap.of( "id", id, "data", Lists.newArrayList( e.getStackTrace() ) ) ) );
-			return;
-		}
-
-		String gson;
-		try {
-			gson = EXECUTOR_SERVICE.submit( new Callable< String >() {
-				public String call() throws Exception {
-					return GSON.toJson( ImmutableMap.of( "id", id, "data", returnArguments ) );
-				}
-			} ).get( 30, TimeUnit.SECONDS );
-		} catch ( InterruptedException | ExecutionException | TimeoutException e ) {
-			callback.onSuccess(
-					GSON.toJson( ImmutableMap.of( "id", id, "data", Lists.newArrayList( e.getStackTrace() ) ) ) );
-			return;
-		}
-		callback.onSuccess( gson );
+			String gson;
+			try {
+				gson = EXECUTOR_SERVICE.submit( new Callable< String >() {
+					public String call() throws Exception {
+						return GSON.toJson( ImmutableMap.of( "id", id, "data", returnArguments ) );
+					}
+				} ).get( 30, TimeUnit.SECONDS );
+			} catch ( InterruptedException | ExecutionException | TimeoutException e ) {
+				callback.onSuccess(
+						GSON.toJson( ImmutableMap.of( "id", id, "data", Lists.newArrayList( e.getStackTrace() ) ) ) );
+				return;
+			}
+			callback.onSuccess( gson );
+		} );
 	}
 
 	@SuppressWarnings( { "unchecked", "rawtypes" } )
