@@ -45,7 +45,7 @@ public class ChatServer extends WebSocketServer {
 			public void run() {
 				getConnections().forEach( WebSocket::sendPing );
 			}
-		}, TimeUnit.SECONDS.toMillis( 30 ), TimeUnit.SECONDS.toMillis( 30 ) );
+		}, TimeUnit.SECONDS.toMillis( 15 ), TimeUnit.SECONDS.toMillis( 15 ) );
 	}
 
 	@Override
@@ -112,7 +112,6 @@ public class ChatServer extends WebSocketServer {
 			String username = args[ 1 ];
 			String password = PasswordUtils.hashString( args[ 2 ] );
 			if ( !this.fineSocket.getPasswords().getOrDefault( username, "N/A" ).equalsIgnoreCase( password ) ) {
-				// TODO: hostname returns null. daarom komt er soms n error
 				int tries = this.passwordAttempts.put( getIPAdress( webSocket.getRemoteSocketAddress() ),
 						this.passwordAttempts.getOrDefault( getIPAdress( webSocket.getRemoteSocketAddress() ), 0 )
 								+ 1 );
@@ -130,7 +129,10 @@ public class ChatServer extends WebSocketServer {
 			return;
 		}
 		try {
-			StringParser.parseString( message, webSocket::send );
+			StringParser.parseString( message, string -> {
+				if ( !webSocket.isFlushAndClose() )
+					webSocket.send( string );
+			} );
 		} catch ( ClassNotFoundException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e ) {
 			e.printStackTrace();
