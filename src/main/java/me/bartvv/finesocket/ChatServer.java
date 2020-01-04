@@ -71,7 +71,7 @@ public class ChatServer extends WebSocketServer {
 				if ( !webSocket.isClosed() )
 					webSocket.close();
 			}
-		}, this.fineSocket.getConfig().getInt( "websocket.disconnectTime" ) * 20 );
+		}, this.fineSocket.getConfig().getInt( "websocket.disconnectTime" ) );
 	}
 
 	@Override
@@ -141,7 +141,7 @@ public class ChatServer extends WebSocketServer {
 	}
 
 	private String getIPAdress( InetSocketAddress inetSocketAddress ) {
-		return inetSocketAddress.getAddress().toString();
+		return inetSocketAddress == null ? "N/A" : inetSocketAddress.getAddress().toString();
 	}
 
 	@Override
